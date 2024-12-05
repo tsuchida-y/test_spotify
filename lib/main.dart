@@ -45,7 +45,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<void> _fetchNewReleases() async {
     final data = await _spotifyService.getNewReleases();
     setState(() {
-      _newReleases = data['albums']['items'];
+      _newReleases = data['albums']['items'];//アルバムの情報を取得
     });
   }
 
@@ -57,16 +57,16 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Center(
-        child: _newReleases.isEmpty
-            ? const CircularProgressIndicator()
-            : ListView.builder(
-                itemCount: _newReleases.length,
-                itemBuilder: (context, index) {
-                  final album = _newReleases[index];
+        child: _newReleases.isEmpty//データが取得されているかどうかをチェック
+            ? const CircularProgressIndicator()//データが取得されるまでローディングアイコンを表示
+            : ListView.builder(//データが取得されたらリストビューを表示
+                itemCount: _newReleases.length,//アルバムの数だけリストを作成
+                itemBuilder: (context, index) {//リストの要素を作成
+                  final album = _newReleases[index];//アルバムの情報を取得
                   return ListTile(
-                    leading: Image.network(album['images'][0]['url']),
-                    title: Text(album['name']),
-                    subtitle: Text(album['artists'][0]['name']),
+                    leading: Image.network(album['images'][0]['url']),//アルバムの画像を表示
+                    title: Text(album['name']),//アルバムの名前を表示
+                    subtitle: Text(album['artists'][0]['name']),//アーティストの名前を表示
                   );
                 },
               ),
