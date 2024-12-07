@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Spotify Playlists'),
+      home: const MyHomePage(title: 'Top Tracks'),
     );
   }
 }
@@ -34,20 +34,22 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final SpotifyService _spotifyService = SpotifyService();
-  List<dynamic> _playlists = [];
+  List<dynamic> _topTracks = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _fetchPlaylists();
+    _fetchTopTracks();
   }
 
-   Future<void> _fetchPlaylists() async {
-     final data = await _spotifyService.getUserPlaylists();
-     setState(() {
-       _playlists = data['items'];
-     });
-   }
+  Future<void> _fetchTopTracks() async {
+    final data = await _spotifyService.getTopTracks();
+    setState(() {
+      _topTracks = data['items'];
+      _isLoading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,18 +59,18 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Center(
-        child: _playlists.isEmpty
+        child: _isLoading
             ? const CircularProgressIndicator()
             : ListView.builder(
-                itemCount: _playlists.length,
+                itemCount: _topTracks.length,
                 itemBuilder: (context, index) {
-                  final playlist = _playlists[index];
+                  final track = _topTracks[index];
                   return ListTile(
-                    leading: playlist['images'].isNotEmpty
-                        ? Image.network(playlist['images'][0]['url'])
+                    leading: track['album']['images'].isNotEmpty
+                        ? Image.network(track['album']['images'][0]['url'])
                         : const Icon(Icons.music_note),
-                    title: Text(playlist['name']),
-                    subtitle: Text('Tracks: ${playlist['tracks']['total']}'),
+                    title: Text(track['name']),
+                    subtitle: Text('Artist: ${track['artists'][0]['name']}'),
                   );
                 },
               ),
