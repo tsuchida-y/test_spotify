@@ -1,4 +1,4 @@
-package com.example.test_youtubemusic
+package com.example.test_spotify
 
 import io.flutter.embedding.android.FlutterActivity
 

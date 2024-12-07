@@ -3,7 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'spotify_service.dart';
 
 void main() async {
-  await dotenv.load(fileName: '.env');
+  await dotenv.load(fileName: ".env");
   runApp(const MyApp());
 }
 
@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Spotify New Releases'),
+      home: const MyHomePage(title: 'Spotify Playlists'),
     );
   }
 }
@@ -34,20 +34,20 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final SpotifyService _spotifyService = SpotifyService();
-  List<dynamic> _newReleases = [];
+  List<dynamic> _playlists = [];
 
   @override
   void initState() {
     super.initState();
-    _fetchNewReleases();
+    _fetchPlaylists();
   }
 
-  Future<void> _fetchNewReleases() async {
-    final data = await _spotifyService.getNewReleases();
-    setState(() {
-      _newReleases = data['albums']['items'];//アルバムの情報を取得
-    });
-  }
+   Future<void> _fetchPlaylists() async {
+     final data = await _spotifyService.getUserPlaylists();
+     setState(() {
+       _playlists = data['items'];
+     });
+   }
 
   @override
   Widget build(BuildContext context) {
@@ -57,16 +57,18 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Center(
-        child: _newReleases.isEmpty//データが取得されているかどうかをチェック
-            ? const CircularProgressIndicator()//データが取得されるまでローディングアイコンを表示
-            : ListView.builder(//データが取得されたらリストビューを表示
-                itemCount: _newReleases.length,//アルバムの数だけリストを作成
-                itemBuilder: (context, index) {//リストの要素を作成
-                  final album = _newReleases[index];//アルバムの情報を取得
+        child: _playlists.isEmpty
+            ? const CircularProgressIndicator()
+            : ListView.builder(
+                itemCount: _playlists.length,
+                itemBuilder: (context, index) {
+                  final playlist = _playlists[index];
                   return ListTile(
-                    leading: Image.network(album['images'][0]['url']),//アルバムの画像を表示
-                    title: Text(album['name']),//アルバムの名前を表示
-                    subtitle: Text(album['artists'][0]['name']),//アーティストの名前を表示
+                    leading: playlist['images'].isNotEmpty
+                        ? Image.network(playlist['images'][0]['url'])
+                        : const Icon(Icons.music_note),
+                    title: Text(playlist['name']),
+                    subtitle: Text('Tracks: ${playlist['tracks']['total']}'),
                   );
                 },
               ),

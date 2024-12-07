@@ -1,50 +1,77 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';//flutter_dotenv パッケージを使用して環境変数を読み込んでいます。
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_web_auth/flutter_web_auth.dart';
 
 class SpotifyService {
+  final String _clientId = dotenv.env['SPOTIFY_CLIENT_ID']!;
+  final String _clientSecret = dotenv.env['SPOTIFY_CLIENT_SECRET']!;
+  final String _redirectUri = dotenv.env['SPOTIFY_REDIRECT_URI']!;
+  String? _accessToken;
 
-  final String _clientId 
-  = dotenv.env['SPOTIFY_CLIENT_ID']!;//envのSPOTIFY_CLIENT_IDを_clientId変数に代入。! は非nullアサーション。
-  final String _clientSecret = dotenv.env['SPOTIFY_CLIENT_SECRET']!;//パッケージを使用して環境変数を読み込んでる。
-  String? _accessToken;//_accessToken変数を宣言。?はnull許容型。
+//デバッグプリントを追加
+  SpotifyService() {
+    print('Client ID: $_clientId');
+    print('Client Secret: $_clientSecret');
+    print('Redirect URI: $_redirectUri');
+  }
 
-  Future<void> authenticate() async {//非同期処理のメソッド
-    final response = await http.post(//リクエストが完了するまで待つ
-      Uri.parse('https://accounts.spotify.com/api/token'),//リクエスト先のURL
-      headers: {//リクエストヘッダー
-        'Authorization': 'Basic ' + base64Encode(utf8.encode('$_clientId:$_clientSecret')),//クライアントIDとクライアントシークレットをBase64エンコードし、Basic認証の形式に変換
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: {'grant_type': 'client_credentials'},//リクエストボディ
+  Future<void> authenticate() async {
+    final authUrl = Uri.https('accounts.spotify.com', '/authorize', {
+      'response_type': 'code',
+      'client_id': _clientId,
+      'redirect_uri': _redirectUri,
+      'scope': 'playlist-read-private',
+    });
+
+    print('Auth URL: $authUrl');
+
+    final result = await FlutterWebAuth.authenticate(
+      url: authUrl.toString(),
+      callbackUrlScheme: 'Hackathonteam21://callback',
     );
 
+    print('Authentication result: $result');
 
-    //Spotify APIからの認証リクエストのレスポンスを処理する
-    if (response.statusCode == 200) {//リクエストが成功すると200が返ってくる
-      final data = jsonDecode(response.body);//レスポンスボディをJSON形式からDartのマップにデコード
-      _accessToken = data['access_token'];//デコードされたJSONデータからアクセストークンを取得
+    final code = Uri.parse(result).queryParameters['code'];
+
+    final response = await http.post(
+      Uri.parse('https://accounts.spotify.com/api/token'),
+      headers: {
+        'Authorization': 'Basic ' + base64Encode(utf8.encode('$_clientId:$_clientSecret')),
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: {
+        'grant_type': 'authorization_code',
+        'code': code!,
+        'redirect_uri': _redirectUri,
+      },
+    );
+  print('Token response: ${response.body}');
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      _accessToken = data['access_token'];
     } else {
-      throw Exception('Failed to authenticate with Spotify');//例外処理
+      throw Exception('Failed to authenticate with Spotify');
     }
   }
 
-  Future<Map<String, dynamic>> getNewReleases() async {
-    if (_accessToken == null) {//アクセストークンがnullの場合
-      await authenticate();//認証メソッドを呼び出す
+  Future<Map<String, dynamic>> getUserPlaylists() async {
+    if (_accessToken == null) {
+      await authenticate();
     }
 
     final response = await http.get(
-      Uri.parse('https://api.spotify.com/v1/browse/new-releases'),//リクエスト先のURL
+      Uri.parse('https://api.spotify.com/v1/me/playlists'),
       headers: {
-        'Authorization': 'Bearer $_accessToken',//アクセストークンをリクエストヘッダーに追加
+        'Authorization': 'Bearer $_accessToken',
       },
     );
 
-    if (response.statusCode == 200) { 
-      return jsonDecode(response.body);//レスポンスボディをJSON形式からDartのマップにデコードを戻り値として返す
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
     } else {
-      throw Exception('Failed to fetch new releases');//例外処理
+      throw Exception('Failed to fetch playlists');
     }
   }
 }
